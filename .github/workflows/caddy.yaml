@@ -21,10 +21,25 @@ jobs:
       - name: Fetch Latest Caddy Version
         id: fetch_version
         run: |
-          latest_tag=$(curl -s -f https://api.github.com/repos/caddyserver/caddy/releases/latest | jq -r '.tag_name')
+          latest_tag=""
+          for i in {1..5}; do
+            echo "Debug: Attempt $i to fetch latest tag"
+            latest_tag=$(curl -s -f https://api.github.com/repos/caddyserver/caddy/releases/latest | jq -r '.tag_name')
+            if [ -n "$latest_tag" ]; then
+              echo "Debug: Successfully fetched latest tag: $latest_tag"
+              break
+            fi
+
+            echo "Debug: Failed to fetch latest tag on attempt $i, retrying..."
+            sleep 1
+          done
+          if [ -z "$latest_tag" ]; then
+            echo "Error: Failed to fetch the latest tag after 5 attempts."
+            exit 1
+          fi
+
           version=${latest_tag#v}
           echo "VERSION=$version" >> $GITHUB_ENV
-          echo "Debug: Fetched version from upstream: $version"
 
       - name: Check Registry for Existing Image
         id: check_registry
